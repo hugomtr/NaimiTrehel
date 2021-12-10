@@ -116,8 +116,17 @@ int main(int argc, char *argv[])
     pthread_t connectAllSite;
     pthread_create(&connectAllSite,NULL,connectneighbors,&general_port);
 
+    
 
 
+    printf("Serveur : fin du dialogue avec les utilisateurs\n");
+	for(int i=general_port; i<general_port + n_site; i++) {
+		if(neighbors[i]!=-1 && i!=general_port) {
+			close( neighbors[i] );
+		}
+	}
+
+    close(general_sock);
     return 0;
 }
 
