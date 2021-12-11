@@ -1,3 +1,7 @@
 .vscode/
-# ignore all the file 
-*.txt
+
+# compile object files 
+*.o
+
+# txt files 
+output.txt
