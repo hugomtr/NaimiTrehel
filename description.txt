@@ -12,6 +12,7 @@ fonction run()
 	thread receveurs -> traitement_message()
 	thread envoyeurs -> travail()
 
+
 traitement_message()
 	création d'un socket server -> socketReceveur()
 	-Tant que processus condition de fin non rencontré
@@ -20,8 +21,8 @@ traitement_message()
 			TOKEN: token_present = vraie
 			REQUEST: 
 			si racine
-
 			LIBERATION: 
+
 
 travail()
 	pour de 0 au nombres de CSREQUEST que fera le site
@@ -33,7 +34,6 @@ travail()
 		desire_quitter_la_SC()
 		
 
-
 desire_rentrer_en_SC()
 	si j'ai un last(pere)
 		envoi_message(REQUEST) à mon last
@@ -42,25 +42,19 @@ desire_rentrer_en_SC()
 
 	tant_que je n'ai pas le token
 		utilisation d'un verrou
-	
+
+
 desire_quitter_la_SC()
 	je ne demande plus la SC
 	si j'ai un next
 		envoi_mssage(TOKEN) à mon next
 	update les valeurs des propres à l'algo (revoir naimi trehel)
 
+
 envoi_message() // à chaque appel de la func un socket temporaire est crée pour envoyer un message
 	création d'un socket client qui envoie sur le port passé en parametre
 	envoi du message
 	fermer socket
-
-
-
-
-
-
-
-
 
 
 envoimessage()
