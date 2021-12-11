@@ -1,2 +1,3 @@
 .vscode/
-./*.txt
+description.txt
+trace_execution.txt
