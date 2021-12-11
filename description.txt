@@ -21,7 +21,6 @@ traitement_message()
 			REQUEST: 
 			si racine
 
-
 			LIBERATION: 
 
 travail()
