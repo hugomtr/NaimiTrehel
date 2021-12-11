@@ -315,6 +315,7 @@ int envoiMessage(int myID, enum messageType type, int destiID){
     message message;
     message.idEnvoyeur = myID;
     message.idReceveur = destiID;
+    message.type = type;
     
 
     struct sockaddr_in adrReceveur;
