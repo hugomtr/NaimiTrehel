@@ -1,145 +1,78 @@
-fonctions à utiliser :
+fonction main()
 
-Structure Message {
-	str = (message)
-	int = (port) 
-}
+fonction run()
+	-Dans un premier temps la fonction initialise tous les threads 
+	c'est à dire un tableau de n_site de threads "envoyeurs"
+	et un tableau de n_sites de threads "receveurs"
 
-Structure Site {
-	port				
-	socket
-}
-// VA Globales
-neighbors //tableaux de sockets
-...
+	-initialisation de tous les tableaux utiles
+	(tableaux des last,next,hastoken,request_cs)
+
+	-création des threads (pthread_create) 
+	thread receveurs -> traitement_message()
+	thread envoyeurs -> travail()
+
+traitement_message()
+	création d'un socket server -> socketReceveur()
+	-Tant que processus condition de fin non rencontré
+		acceptation de connexion entrante ()
+		switch case sur le type de message recu:
+			TOKEN: token_present = vraie
+			REQUEST: 
+			si racine
 
 
+			LIBERATION: 
 
-int initialize(port){
-	creation du socket principal
-	adresse en INNADDR_ANY
-	port à passer en argument >3000
-	bind()
-	listen()
-}	
-
-void handlemessage(){
-	emmeteur = -1
-	Si globalMessage.str == "TOKENREQUEST"
-		emmeteur = globalMessage.port
-		// mon last n'est pas la racine
-		Si last != port_de_la_racine_des_last (root_port) 
-			je transfere le message au socket de mon last
-			last = Emmeteur     
-		// mon last est la racine
-		Sinon
-			next = emmetteur
-			last = emmeteur
+travail()
+	pour de 0 au nombres de CSREQUEST que fera le site
+		# simuler des temps aléatoires de CS et de durée de la prise en compte de la requete
+		desire_rentrer_en_SC()
+		""""
+		CS
+		""""
+		desire_quitter_la_SC()
 		
-	Si MessgeGlobal.str == "TOKEN"
-		hastoken = True
-}	
 
 
-void *waitMessage(void * site){
-    mutex_unlock(verrouSite)
-    while socket du site est operationel (résultat du recv > 0)
-        recevoir message entrant (recv)
-        mutex_lock(verrouMsgGlobal)
-        globalMessage.contenu = resultat du recv
-        globalMessage.port = port du site  
-        handlemessage();
-        mutex_unlock(verrouMsgGlobal)
-   
-   le socket du site est mis sur inactif (on update sa valeur à -1)
-}
+desire_rentrer_en_SC()
+	si j'ai un last(pere)
+		envoi_message(REQUEST) à mon last
+		last = nil
+	update les valeurs des propres à l'algo (revoir naimi trehel)
 
-
-void * acceptneighbors(void *){
-	while(continuer)
-	/* lorsque le serveur accepte une demande de int recv(....)
-	connexion, il crée une nouvelle socket. Cette dernière est
-	connectée à celle du client et elle est à utiliser pour
-	communiquer avec lui.
-	*/
-	res = nouveau socket (issus de l'acceptation de ma_sock) qui communiquera avec le premier socket des neighbors.
-	Si c'est accepté
-	    on recupere des infos sur le site (le port)// methode recv (port = contenu du message recu)
-	    Si on n'est pas encore connecté au port de ce site
-		on initialise le socket dans le tableau neighbors(du port lus) à res (le socket de connexion au premier voisin) 
-		lock verrouSite
-		création d'un site initialisé au port lus et au socket qui viens d'etre initialisé plus haut
-		création et on lance un thread waitMessage(s)
-}
-
-
-void * connectneighbors(void *){
-	for all site{
-		Si le site(tableau neighbors) n'est pas encore connecté et si c'est pas le site racine des last
-			    creer un socket pour ce site
-			    (avec à chaque fois un port different unique pour chaque site)/* on pourra imaginer de partir de root_port=(port principal) et d'incrementer par le nmbre de site...
-			    connecter le socket crée au socket général = ma_sock
-			    Si connexion s'est bien déroulé
-					envoi du port au socket principal (send le message = port du socket su site)
-					lock verrouSite
-					on crée un site s
-					port = port_su_site trouvé que l'on initialise par incrementation ou etc
-					socket = entrée du tableaux neighbors correspondant
-					création et on lance un thread waitMessage(s)
-    }
-}
-
-
-void * CriticalSection(void *){
-	while(1)
-		Si hastoken et je ne suis pas déja rentré en SC
-			"""""
-			SECTION CRITIQUE
-			"""""
-			lancement du thread sendToken()
-		sinon
-			j'attends un petit peu			
-}
-
-
-void * sendToken() {
-	while (next == -1)
-		j'attends
-	send(neighbors[next], "TOKEN") je libère le Token en l'envoyant à mon next
-	je met a jours les variables next,hastoken,cptSC (compteur CriticalSection évite que le meme site rentre 2 fois en SC)
-}
-
-
-void sendCSRequest(){
-	send(neihbors[last],"TOKENREQUEST,port",..)// on envoie à notre last le message tokenrequest et notre port
-	last = root_port
-}
+	tant_que je n'ai pas le token
+		utilisation d'un verrou
 	
-void main(){
-   	on indique que aucun des sites (neighbors) n'est connecté (=-1) pour l'instant. (normal aucun d'eux n'a son socket d'initialisé)
+desire_quitter_la_SC()
+	je ne demande plus la SC
+	si j'ai un next
+		envoi_mssage(TOKEN) à mon next
+	update les valeurs des propres à l'algo (revoir naimi trehel)
 
-	on initialise un port par défault // le port de notre socket principal
+envoi_message() // à chaque appel de la func un socket temporaire est crée pour envoyer un message
+	création d'un socket client qui envoie sur le port passé en parametre
+	envoi du message
+	fermer socket
 
-	ma_sock = initialize(port) // on initialise le socket principal à l'aide de la fonction initialisation (en mode socket serveur)
 
-	on lance le thread d'acceptation (qui va connecter le socket general au socket du premier voisin)
 
-	on lance le thread de connexion (qui va connecter tous les sites en créant un socket les connecant au socket général)
 
-	on lance le thread de CriticalSection
 
-	Si root_port est le port_principal(=port du socket principal)
-		hastoken = vraie
-	Sinon 
-		hastoken = faux   
 
-	While user_choice 
-		// user_choice = 1 if CS request 
-		// user_choice = 0 if quit
-		if (hastoken)
-			"tu as le jeton"
-		else
-			sendCSRequest()
-	
-	fermer toutes les sokets.
-}
+
+
+
+
+envoimessage()
+	definition d'un socket client
+	connexion du socket au server(socket receveur) sur ce meme port
+	envoi du message
+
+
+
+
+
+
+
+
