@@ -27,6 +27,12 @@ enum typeDuMsg {
     REQUETE // Message d'un site souhaitant rentré en SC
 };
 
+typedef struct message {
+    enum typeDuMsg tMsg; // type du message, défini ci-dessus
+    int idEmetteur; // ID du site qui envoie le message
+    int siteReq; // ID du site qui fait une requête
+} Mymsg;
+
 // Port de départ
 int port;
 
@@ -81,7 +87,7 @@ int creerSocketReceveuse(int myID, int myPort){
     True -> Le message a été envoyé
     False -> Sinon
 */
-bool envoyerMsg(int myID, int destinationID, int whoHasSent, typeDuMsg tMsg){
+bool envoyerMsg(int myID, int destinationID, int whoHasSent, typeDuMsg type){
 
     printf("Le Site n°%d créé une socket d'envoi vers le Site n°%d...\n", myID, destinationID);
 
@@ -93,8 +99,11 @@ bool envoyerMsg(int myID, int destinationID, int whoHasSent, typeDuMsg tMsg){
         exit(1);
     }
 
+    Mymsg message;
+    message.idEmetteur = myID;
+    message.tMsg = type;
+
     int sockEnvoi;
-    char* message;
 
     struct sockaddr_in server;
     server.sin_addr.s_addr = INADDR_ANY;
@@ -117,7 +126,7 @@ bool envoyerMsg(int myID, int destinationID, int whoHasSent, typeDuMsg tMsg){
         return false;
     }
 
-    if (send(sockEnvoi, (char* )&message, sizeof(message), MSG_CONFIRM) < 0){
+    if (send(sockEnvoi, (char*)(&message), sizeof(message), MSG_CONFIRM) < 0){
         printf("Erreur lors de l'envoi du message\n");
         perror("Send()");
         exit(1);
@@ -169,6 +178,8 @@ if (argc != 3)
         exit(1);
     }
 
+
+    // On attend 2 arguments : l'ID du site et le n° de port
     siteNb = atoi(argv[1]); 
     port = (unsigned short) atoi(argv[2]);
     
@@ -176,7 +187,7 @@ if (argc != 3)
     // printf("\nFile descriptor returned: %d\n", sfd);
 
     bool val = envoyerMsg(siteNb, 5, siteNb, REQUETE);
-
+    printf("value returned by envoyerMsg: %d", val);
 
 
 }   
