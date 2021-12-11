@@ -20,6 +20,16 @@ Authors:
 
 #define NB_SITES_MAX 10
 
+
+// Lorsqu'on envoi un message, celui-ci est "étiqueté" par son type 
+enum typeDuMsg {
+    AJETON, // Message dont l'émetteur est celui qui a le jeton
+    REQUETE // Message d'un site souhaitant rentré en SC
+};
+
+// Port de départ
+int port;
+
 int writing_in_files(FILE * fp){
     for (int i =0;i<1200;i++){
         fprintf(fp,"Hey bro Thread :%d \n",i);
@@ -27,13 +37,16 @@ int writing_in_files(FILE * fp){
     return 0;
 }
 
-
-// socket serveur qui permettra la récéption des messages des autres sites
+/* Fonction pour créer une socket serveur qui permettra la récéption des messages des autres sites
+   Return value : 
+   *** Descripteur de fichier de la socket
+*/
 int creerSocketReceveuse(int myID, int myPort){
-    
-    printf("Le Site n°%d créé une socket receveuse n°%hu...", myID, myPort);
-    struct sockaddr_in server;
 
+    printf("Le Site n°%d créé une socket receveuse n°%hu...", myID, myPort);
+    
+    // on décrit notre socket d'écoute
+    struct sockaddr_in server;
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
     server.sin_port = htons(myPort);
@@ -41,26 +54,77 @@ int creerSocketReceveuse(int myID, int myPort){
     // on créé la socket receveuse 
     int sockfd;
     if ((sockfd = socket(PF_INET, SOCK_STREAM, 0)) < 0){
-        printf("Erreur : Site n°%d : Erreur lors de la création de la socket. Cause : ",myID);
+        printf("Site n°%d : Erreur lors de la création de la socket. Cause : ",myID);
         perror("Socket()");
         exit(1);
     }
 
     // on attache la socket à un port et une adresse
     if (bind(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0){
-        printf("Erreur : Site n°%d : Erreur lors de l'attachement de la socket au port %hu. Cause : ", myID, myPort);
+        printf("Site n°%d : Erreur lors de l'attachement de la socket au port %hu. Cause : ", myID, myPort);
         perror("Bind()");
         exit(1);
     }
 
     // on met notre socket en écoute de connexions 
     if (listen(sockfd, NB_SITES_MAX) < 0){
-        printf("Erreur : Erreur lors de la mise en écoute. Cause : ");
+        printf("Erreur lors de la mise en écoute. Cause : ");
         perror("Listen()");
         exit(EXIT_FAILURE);
     }
 
     return sockfd;
+}
+
+/* Cette fonction sert à l'envoi d'un messsage vers un site donné 
+    Return values : 
+    True -> Le message a été envoyé
+    False -> Sinon
+*/
+bool envoyerMsg(int myID, int destinationID, int whoHasSent, typeDuMsg tMsg){
+
+    printf("Le Site n°%d créé une socket d'envoi vers le Site n°%d...", myID, destinationID);
+
+    /* Avant de poursuivre dans la fonction, il est important de s'assurer
+    que le site émetteur ne soit pas également le site récépteur */
+    if (myID == destinationID){
+        printf("Le site envoyant le message est le même que celui recevant le message.\
+                Arrêt du programme\n.");
+        exit(1);
+    }
+
+    int sockEnvoi;
+    char* message;
+
+    struct sockaddr_in server;
+    server.sin_addr.s_addr = INADDR_ANY;
+    server.sin_family = PF_INET;
+    server.sin_port = htons(port+destinationID);
+
+    if ( socket(sockEnvoi, SOCK_STREAM, 0) < 0) {
+        printf("Erreur lors de la création de la socket\n");
+        perror("Socket()");
+        exit(1);
+        return false;
+    }
+
+    if (connect(sockEnvoi, (struct sockaddr*)& server, sizeof(server)) < 0){
+        printf("Erreur lors de la connexion au serveur\n");
+        perror("Connect()");
+        exit(1);
+        return false;
+    }
+
+    if (send(sockEnvoi, (char* )&message, sizeof(message), MSG_CONFIRM) < 0){
+        printf("Erreur lors de l'envoi du message\n");
+        perror("Send()");
+        exit(1);
+        return false;
+    }
+
+    close(sockEnvoi);
+    return true;
+
 }
 
 
@@ -92,7 +156,7 @@ int main(int argc, char *argv[])
 }
 
 
-// Test de la fct° socketReceive pour bon fonctionnement
+// Test des fct° receive et envoi pour bon fonctionnement
 // int main(int argc, char const *argv[])
 // {
 // unsigned short port; 
@@ -107,9 +171,8 @@ int main(int argc, char *argv[])
 //     siteNb = atoi(argv[1]);
 //     port = (unsigned short) atoi(argv[2]);
     
-//     int sfd = creerSocketReceveuse(siteNb, port);
-//     printf("\nFile descriptor returned: %d", sfd);
-
+//     int sfd = creerSocketReceveuse(siteNb, port+siteNb);
+//     printf("\nFile descriptor returned: %d\n", sfd);
 
 // }
 
