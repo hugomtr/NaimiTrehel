@@ -252,7 +252,7 @@ int envoimesage(int myID, enum messageType message, int destiID){
     char message;
 
     struct sockaddr_in adrReceveur;
-    adrReceveur.sin_addr.s_addr = INADDR_ANY;
+    adrReceveur.sin_addr.s_addr = inet_addr("127.0.0.1");
     adrReceveur.sin_family = PF_INET;
     adrReceveur.sin_port = htons(start_port+destiID);
 

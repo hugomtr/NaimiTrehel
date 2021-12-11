@@ -1,7 +1,7 @@
 #ifndef NB_NODES
 #define NB_NODES 5
 #define NIL_PROCESS -1
-int general_port;
+
 
 enum messageType {
     TOKEN,
@@ -12,7 +12,7 @@ enum messageType {
 struct message {
     enum messageType type;
     int idEnvoyeur;
-    int idRequest;
+    int idReceveur;
 };
 
 struct threadArgs {

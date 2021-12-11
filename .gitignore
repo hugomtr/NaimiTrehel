@@ -4,6 +4,4 @@
 *.o
 
 # txt files 
-output.txt
-description.txt
-trace_execution_algo.txt
+*.txt
