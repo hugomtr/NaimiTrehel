@@ -1,4 +1,3 @@
 .vscode/
-*.log
+# ignore all the file 
 *.txt
-*.cpp
