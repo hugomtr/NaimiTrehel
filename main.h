@@ -1,6 +1,9 @@
 #ifndef NB_NODES
 #define NB_NODES 5
 #define NIL_PROCESS -1
+#define NIL -1
+#define TRUE 1
+#define FALSE 0
 
 
 enum messageType {
@@ -18,10 +21,10 @@ struct message {
 struct threadArgs {
     int myID;
     int myPort;
-    int nb_entree_CS;
+    int nb_entree_SC;
     int * last;
     int * next;
-    int * requete_CS;
+    int * requete_SC;
     int * token_present;
     int * nbProcessTermines;
     FILE * file;
@@ -31,8 +34,8 @@ struct threadArgs {
 
 int creeSocketReceveur(int myID,int myPort);
 int envoiMessage(int myId, enum messageType ,int destiId);
-int desireSortirSC(int myID, int * requete_CS, int * next, int * last, int * has_token, pthread_mutex_t *verrou);
-int desireRentrerenSC(int myID, int * requete_CS, int * next, int * last, int * has_token, pthread_mutex_t *verrou);
+int desireSortirSC(int myID, int * requete_SC, int * next, int * last, int * has_token, pthread_mutex_t *verrou);
+int desireRentrerenSC(int myID, int * requete_SC, int * next, int * last, int * has_token, pthread_mutex_t *verrou);
 void * travail(void * s);
 void * traitement_message(void * s);
 void run(int nodeInitialJeton, FILE *file, int start_port);
