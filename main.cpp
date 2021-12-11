@@ -16,12 +16,39 @@ Authors:
 #include "main.h"
 
 
-int writing_in_files(FILE * fp){
-    for (int i =0;i<1200;i++){
-        fprintf(fp,"Hey bro Thread :%d \n",i);
+// socket serveur qui permettra la récéption des messages des autres sites
+int creerSocketReceveuse(int myID, int myPort){
+    printf("Le Site n°%d créé une socket receveuse n°%hu...", myID, myPort);
+    struct sockaddr_in server;
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = INADDR_ANY;
+    server.sin_port = htons(myPort);
+
+    // on créé la socket receveuse 
+    int sockfd;
+    if ((sockfd = socket(PF_INET, SOCK_STREAM, 0)) < 0){
+        printf("Erreur : Site n°%d : Erreur lors de la création de la socket. Cause : ",myID);
+        perror("Socket()");
+        exit(1);
     }
-    return 0;
+
+    // on attache la socket à un port et une adresse
+    if (bind(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0){
+        printf("Erreur : Site n°%d : Erreur lors de l'attachement de la socket au port %hu. Cause : ", myID, myPort);
+        perror("Bind()");
+        exit(1);
+    }
+
+    // on met notre socket en écoute de connexions 
+    if (listen(sockfd, 20) < 0){
+        printf("Erreur : Erreur lors de la mise en écoute. Cause : ");
+        perror("Listen()");
+        exit(EXIT_FAILURE);
+    }
+
+    return sockfd;
 }
+
 
 void * traitement_message(void * params){
     threadArgs *arg = (struct threadArgs *)params;
