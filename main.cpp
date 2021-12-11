@@ -61,7 +61,7 @@ int creerSocketReceveuse(int myID, int myPort){
 
     // on attache la socket à un port et une adresse
     if (bind(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0){
-        printf("Site n°%d : Erreur lors de l'attachement de la socket au port %hu. Cause : ", myID, myPort);
+        printf("Site n°%d : Erreur lors de l'attachement de la socket au port %hu. Cause : \n", myID, myPort);
         perror("Bind()");
         exit(1);
     }
@@ -83,7 +83,7 @@ int creerSocketReceveuse(int myID, int myPort){
 */
 bool envoyerMsg(int myID, int destinationID, int whoHasSent, typeDuMsg tMsg){
 
-    printf("Le Site n°%d créé une socket d'envoi vers le Site n°%d...", myID, destinationID);
+    printf("Le Site n°%d créé une socket d'envoi vers le Site n°%d...\n", myID, destinationID);
 
     /* Avant de poursuivre dans la fonction, il est important de s'assurer
     que le site émetteur ne soit pas également le site récépteur */
@@ -98,10 +98,12 @@ bool envoyerMsg(int myID, int destinationID, int whoHasSent, typeDuMsg tMsg){
 
     struct sockaddr_in server;
     server.sin_addr.s_addr = INADDR_ANY;
-    server.sin_family = PF_INET;
-    server.sin_port = htons(port+destinationID);
+    server.sin_family = AF_INET;
+    server.sin_port = htons(port);
 
-    if ( socket(sockEnvoi, SOCK_STREAM, 0) < 0) {
+    sockEnvoi = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (sockEnvoi < 0) {
         printf("Erreur lors de la création de la socket\n");
         perror("Socket()");
         exit(1);
@@ -128,52 +130,56 @@ bool envoyerMsg(int myID, int destinationID, int whoHasSent, typeDuMsg tMsg){
 }
 
 
-int main(int argc, char *argv[])
-{
-    int start_port = 0;
+// int main(int argc, char *argv[])
+// {
+//     int start_port = 0;
 
-    FILE *fp = fopen("trace_execution_algo.txt", "a+");
+//     FILE *fp = fopen("trace_execution_algo.txt", "a+");
 
-    if (!fp)
-    {
-        printf("Error In Opening file");
-        exit(EXIT_FAILURE);
-    }
+//     if (!fp)
+//     {
+//         printf("Error In Opening file");
+//         exit(EXIT_FAILURE);
+//     }
 
-    if (argc < 2)
-    {
-        start_port = 10000;
-    }
-    else
-    {
-        start_port = atoi(argv[2]);
-    }
+//     if (argc < 2)
+//     {
+//         start_port = 10000;
+//     }
+//     else
+//     {
+//         start_port = atoi(argv[2]);
+//     }
 
-    writing_in_files(fp);
-    fclose(fp);
+//     writing_in_files(fp);
+//     fclose(fp);
 
-    return 0;
-}
+//     return 0;
+// }
 
 
 // Test des fct° receive et envoi pour bon fonctionnement
-// int main(int argc, char const *argv[])
-// {
-// unsigned short port; 
-// int siteNb;  
+int main(int argc, char const *argv[])
+{
+int siteNb;  
 
-// if (argc != 3)
-//     {
-//         fprintf(stderr, "Usage: %s numberSite, port\n", argv[0]);
-//         exit(1);
-//     }
+if (argc != 3)
+    {
+        fprintf(stderr, "Usage: %s numberSite, port\n", argv[0]);
+        exit(1);
+    }
 
-//     siteNb = atoi(argv[1]);
-//     port = (unsigned short) atoi(argv[2]);
+    siteNb = atoi(argv[1]); 
+    port = (unsigned short) atoi(argv[2]);
     
-//     int sfd = creerSocketReceveuse(siteNb, port+siteNb);
-//     printf("\nFile descriptor returned: %d\n", sfd);
+    // int sfd = creerSocketReceveuse(siteNb, port+siteNb);
+    // printf("\nFile descriptor returned: %d\n", sfd);
 
-// }
+    bool val = envoyerMsg(siteNb, 5, siteNb, REQUETE);
+
+
+
+}   
+
 
 
