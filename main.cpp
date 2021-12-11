@@ -18,7 +18,7 @@ Authors:
 #include <errno.h>
 #include <netinet/in.h>
 
-#define NB_SITES_MAX
+#define NB_SITES_MAX 10
 
 int writing_in_files(FILE * fp){
     for (int i =0;i<1200;i++){
@@ -30,8 +30,10 @@ int writing_in_files(FILE * fp){
 
 // socket serveur qui permettra la récéption des messages des autres sites
 int creerSocketReceveuse(int myID, int myPort){
+    
     printf("Le Site n°%d créé une socket receveuse n°%hu...", myID, myPort);
     struct sockaddr_in server;
+
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
     server.sin_port = htons(myPort);
@@ -52,7 +54,7 @@ int creerSocketReceveuse(int myID, int myPort){
     }
 
     // on met notre socket en écoute de connexions 
-    if (listen(sockfd, 20) < 0){
+    if (listen(sockfd, NB_SITES_MAX) < 0){
         printf("Erreur : Erreur lors de la mise en écoute. Cause : ");
         perror("Listen()");
         exit(EXIT_FAILURE);
