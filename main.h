@@ -1,10 +1,10 @@
 #ifndef NB_NODES
-#define NB_NODES 5
+#define NB_NODES 3
 #define NIL_PROCESS -1
 #define NIL -1
 #define TRUE 1
 #define FALSE 0
-
+#define NB_EXEC_SC 2
 
 enum messageType {
     TOKEN,
@@ -14,6 +14,7 @@ enum messageType {
 
 struct message {
     enum messageType type;
+    int idDemandeurSC;
     int idEnvoyeur;
     int idReceveur;
 };
@@ -21,7 +22,6 @@ struct message {
 struct threadArgs {
     int myID;
     int myPort;
-    int nb_entree_SC;
     int * last;
     int * next;
     int * requete_SC;
@@ -34,6 +34,7 @@ struct threadArgs {
 
 int creeSocketReceveur(int myID,int myPort);
 int envoiMessage(int myId, enum messageType ,int destiId);
+int envoiMessage(int myId, enum messageType ,int destiId,int idDemandeurCS);
 int desireSortirSC(int myID, int * requete_SC, int * next, int * last, int * has_token, pthread_mutex_t *verrou);
 int desireRentrerenSC(int myID, int * requete_SC, int * next, int * last, int * has_token, pthread_mutex_t *verrou);
 void * travail(void * s);
