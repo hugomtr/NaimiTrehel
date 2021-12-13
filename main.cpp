@@ -81,12 +81,6 @@ int creeSocketReceveur(int myID, int myPort){
 
 void * traitement_message(void * params){
     threadArgs *arg = (struct threadArgs *)params;
-    
-    // printf("myId %d\n", arg->myID);
-    // printf("myPort %d\n", arg->myPort);
-    // printf("last %d\n", *(arg->last));
-    // printf("next %d\n", *(arg->next));
-    
 
     struct sockaddr_in client;
     socklen_t len = sizeof(struct sockaddr_in);
@@ -95,18 +89,18 @@ void * traitement_message(void * params){
 
     int myID = arg->myID;
     int myPort = arg->myPort;
-    int last = *(arg->last);
-    int requete_SC = *(arg->requete_SC);
-    int token_present = *(arg->token_present);
-    int next = *(arg->next);
+    int * last = arg->last;
+    int * requete_SC = arg->requete_SC;
+    int * token_present = arg->token_present;
+    int * next = arg->next;
     FILE * fp = arg->file;
     pthread_mutex_t * adrMutex = arg->mutex;
 
     int sockreceveur = creeSocketReceveur(myID,myPort);
     printf("Le site n° %d commence à ecouter les connections\n",myID);
 
-    int nbSitesTermine = *(arg->nbProcessTermines);
-    while(nbSitesTermine<NB_NODES){
+    int * nbSitesTermine = arg->nbProcessTermines;
+    while(*nbSitesTermine<NB_NODES){
         int sockConn = accept(sockreceveur, (struct sockaddr *)&client, &len);
         if (sockConn < 0){
             printf("Erreur accept socket receveur du site %d\n",myID);
@@ -114,8 +108,7 @@ void * traitement_message(void * params){
             close(sockConn);
         }
         
-        int res;
-        
+        int res;        
         do {
             int res = recv(sockConn, &message_buffer, sizeof(message_buffer),0);
             printf("message recu au site %d: {envoyeur: %d, receveur: %d, type: %d, demandeurSc: %d\n",myID,message_buffer.idEnvoyeur,message_buffer.idReceveur,message_buffer.type,message_buffer.idDemandeurSC);
@@ -123,36 +116,41 @@ void * traitement_message(void * params){
             if ( res > 0 )
                 switch(message_buffer.type){
                     case TOKEN:
+                        printf("Site n° %d reçoit le TOKEN du site n° %d\n",myID,message_buffer.idEnvoyeur);
                         fprintf(fp,"Site n° %d reçoit le TOKEN du site n° %d\n",myID,message_buffer.idEnvoyeur);
                         pthread_mutex_lock(adrMutex);
-                        token_present = TRUE;
+                        *token_present = TRUE;
                         pthread_mutex_unlock(adrMutex);
                         break;
                     case REQUEST:
+                        printf("Site n° %d reçoit une REQUEST du site n° %d\n",myID,message_buffer.idEnvoyeur);
                         fprintf(fp,"Site n° %d reçoit une REQUEST du site n° %d\n",myID,message_buffer.idEnvoyeur);
                         pthread_mutex_lock(adrMutex);
-                        if (last == NIL_PROCESS){
-                            if (requete_SC == TRUE) {
+                        if (*last == NIL_PROCESS){
+                            if (*requete_SC == TRUE) {
                                 pthread_mutex_lock(adrMutex);
-                                next = message_buffer.idDemandeurSC;
+                                *next = message_buffer.idDemandeurSC;
                                 pthread_mutex_unlock(adrMutex);                                 
                             }
                             else {
+                                printf("Site n° %d envoit le TOKEN à son next le site n° %d\n",myID,message_buffer.idDemandeurSC);
                                 fprintf(fp,"Site n° %d envoit le TOKEN à son next le site n° %d\n",myID,message_buffer.idDemandeurSC);
                                 envoiMessage(myID,TOKEN,message_buffer.idDemandeurSC,NIL_PROCESS);
                             }
                         }
                         else {
-                            fprintf(fp,"Site n° %d fait passer la REQUEST à son last le site n° %d\n",myID,last);
-                            envoiMessage(myID,REQUEST,last,message_buffer.idDemandeurSC); 
+                            printf("Site n° %d fait passer la REQUEST à son last le site n° %d\n",myID,*last);
+                            fprintf(fp,"Site n° %d fait passer la REQUEST à son last le site n° %d\n",myID,*last);
+                            envoiMessage(myID,REQUEST,*last,message_buffer.idDemandeurSC); 
                         }
-                        last = message_buffer.idEnvoyeur;
+                        *last = message_buffer.idEnvoyeur;
                         pthread_mutex_unlock(adrMutex);
                         break;
                     case QUIT:
+                        printf("Site n° %d à recut QUIT du site n° %d",myID,message_buffer.idEnvoyeur);
                         fprintf(fp,"Site n° %d à recut QUIT du site n° %d",myID,message_buffer.idEnvoyeur);
                         pthread_mutex_lock(adrMutex);
-                        nbSitesTermine += 1;
+                        *nbSitesTermine += 1;
                         pthread_mutex_unlock(adrMutex);
                         break;
                     default:
@@ -170,15 +168,12 @@ void * traitement_message(void * params){
 
         } while( res > 0 );
     }
-    return NULL;
+    pthread_exit(NULL); 
 }
 
 void * travail(void * params){
     threadArgs *arg = (struct threadArgs *)params;
-    // printf("Travail myId %d\n", arg->myID);
-    // printf("Travail myPort %d\n", arg->myPort);
-    // printf("Travail last %d\n", *(arg->last));
-    // printf("Travail next %d\n", *(arg->next));
+    printf("Thread Travail n°%d\n",arg->myID);
 
     int nb_entree_SC = 0;
     int myID = arg->myID; 
@@ -189,7 +184,6 @@ void * travail(void * params){
     pthread_mutex_t * mutex = arg->mutex;
     
     for (nb_entree_SC = 0;nb_entree_SC< NB_EXEC_SC;nb_entree_SC++){
-        usleep(100000);
         desireRentrerenSC(myID, requete_SC,next, last, token_present, mutex);
         
         printf("Site n°%d entre en SC pour la %d ième fois en SC\n",myID,nb_entree_SC+1);
@@ -198,7 +192,6 @@ void * travail(void * params){
         sleep(1); //SC
         printf("Site n°%d sort de la SC\n",myID);
         fprintf(fp, "Site n°%d sort de la SC\n",myID);        
-
         desireSortirSC(myID, requete_SC,next, last, token_present, mutex);
     }
 
@@ -209,7 +202,7 @@ void * travail(void * params){
             envoiMessage(myID,QUIT,i,NIL_PROCESS);
         }
     }
-    return NULL;
+    pthread_exit(NULL); 
 }
 
 
@@ -234,6 +227,11 @@ void run(int racine_last_id,FILE * fp,int start_port){
     pthread_t thread_receveur[NB_NODES];
     pthread_t thread_travailleur[NB_NODES];
     pthread_mutex_t thread_mutex[NB_NODES];
+
+    for (int i=0;i<NB_NODES;i++)
+    {
+        thread_mutex[i] = PTHREAD_MUTEX_INITIALIZER;
+    }
 
     threadArgs argReceveur[NB_NODES];
 
@@ -270,7 +268,7 @@ void run(int racine_last_id,FILE * fp,int start_port){
 
 int desireRentrerenSC(int myID, int * requete_SC, int * next, int * last, int * has_token, pthread_mutex_t *verrou)
 {
-    printf("Site n°%d rentre dans desireRentreSC\n",myID);
+    printf("Site n°%d desireRentreSC son next est%d\n",myID,*next);
 	pthread_mutex_lock(verrou);
 	*requete_SC = TRUE;
 	if(*last!=-1) // si j'ai un père
@@ -283,13 +281,14 @@ int desireRentrerenSC(int myID, int * requete_SC, int * next, int * last, int * 
     
 	while(1) 
 	{
-		if(has_token) 
+        pthread_mutex_lock(verrou);
+		if(*has_token) 
 		{
 			pthread_mutex_unlock(verrou);
 			break;
 		}
+        pthread_mutex_unlock(verrou);        
 	}
-	pthread_mutex_unlock(verrou);
     return 0;
 }
 
@@ -303,6 +302,7 @@ int desireSortirSC(int myID, int * requete_SC, int * next, int * last, int * has
             printf("Erreur sur l'envoi de jeton du site %d au site %d",myID,*next);
         } 
     }
+    printf("%d cède le jeton au site %d\n",myID,*next);
 	pthread_mutex_unlock(verrou);
     return 0;
 }
