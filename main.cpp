@@ -20,8 +20,6 @@ int start_port;
 
 int main(int argc, char *argv[])
 {
-    int start_port = 0;
-
     FILE *fp = fopen("trace_execution_algo.txt", "a+");
 
     if (!fp)
@@ -32,7 +30,7 @@ int main(int argc, char *argv[])
 
     if (argc < 2)
     {
-        start_port = 10000;
+        start_port = 3000;
     }
     else
     {
@@ -49,7 +47,6 @@ int main(int argc, char *argv[])
 
 // socket serveur qui permettra la récéption des messages des autres sites
 int creeSocketReceveur(int myID, int myPort){
-    printf("Le Site n°%d créé une socket receveuse  sur le port n°%d...\n", myID, myPort);
 
     struct sockaddr_in server;
     server.sin_family = AF_INET;
@@ -60,31 +57,35 @@ int creeSocketReceveur(int myID, int myPort){
     if ((sockfd = socket(PF_INET, SOCK_STREAM, 0)) < 0){
         printf("Erreur : Site n°%d : Erreur lors de la création de la socket. Cause : ",myID);
         perror("Socket()");
+        close(sockfd);
         exit(EXIT_FAILURE);
     }
 
     if (bind(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0){
-        printf("Erreur : Site n°%d : Erreur lors de l'attachement de la socket au port %hu. Cause : ", myID, myPort);
+        printf("Erreur : Site n°%d : Erreur lors de l'attachement de la socket au port %d. Cause : ", myID, myPort);
         perror("Bind()");
+        close(sockfd);
         exit(EXIT_FAILURE);
     }
 
     if (listen(sockfd, NB_NODES) < 0){
         printf("Erreur : Erreur lors de la mise en écoute. Cause : ");
         perror("Listen()");
+        close(sockfd);
         exit(EXIT_FAILURE);
     }
 
+    printf("Socket receveur crée sur le site %d au port %d\n",myID,myPort);
     return sockfd;
 }
 
 void * traitement_message(void * params){
     threadArgs *arg = (struct threadArgs *)params;
     
-    printf("myId %d\n", arg->myID);
-    printf("myPort %d\n", arg->myPort);
-    printf("last %d\n", *(arg->last));
-    printf("next %d\n", *(arg->next));
+    // printf("myId %d\n", arg->myID);
+    // printf("myPort %d\n", arg->myPort);
+    // printf("last %d\n", *(arg->last));
+    // printf("next %d\n", *(arg->next));
     
 
     struct sockaddr_in client;
@@ -102,58 +103,72 @@ void * traitement_message(void * params){
     pthread_mutex_t * adrMutex = arg->mutex;
 
     int sockreceveur = creeSocketReceveur(myID,myPort);
+    printf("Le site n° %d commence à ecouter les connections\n",myID);
 
     int nbSitesTermine = *(arg->nbProcessTermines);
     while(nbSitesTermine<NB_NODES){
         int sockConn = accept(sockreceveur, (struct sockaddr *)&client, &len);
-        int res = recv(sockConn, &message_buffer, sizeof(message_buffer),0);
+        if (sockConn < 0){
+            printf("Erreur accept socket receveur du site %d\n",myID);
+            perror("Accept()");
+            close(sockConn);
+        }
+        
+        int res;
+        
+        do {
+            int res = recv(sockConn, &message_buffer, sizeof(message_buffer),0);
+            printf("message recu au site %d: {envoyeur: %d, receveur: %d, type: %d, demandeurSc: %d\n",myID,message_buffer.idEnvoyeur,message_buffer.idReceveur,message_buffer.type,message_buffer.idDemandeurSC);
 
-        printf("message buffer id request %d\n",message_buffer.idReceveur);
-        printf("message buffer id envoyeur %d\n",message_buffer.idEnvoyeur);
-        printf("enum message %d\n",message_buffer.type);
-
-        int idDemandeurSC = message_buffer.idDemandeurSC;
-        if (res > 0){
-            switch(message_buffer.type){
-                case TOKEN:
-                    fprintf(fp,"Site n° %d reçoit le TOKEN du site n° %d\n",myID,message_buffer.idEnvoyeur);
-                    pthread_mutex_lock(adrMutex);
-                    token_present = TRUE;
-                    pthread_mutex_unlock(adrMutex);
-                    break;
-                case REQUEST:
-                    fprintf(fp,"Site n° %d reçoit une REQUEST du site n° %d\n",myID,message_buffer.idEnvoyeur);
-                    pthread_mutex_lock(adrMutex);
-                    if (last == NIL_PROCESS){
-                        if (requete_SC == TRUE) {
-                            pthread_mutex_lock(adrMutex);
-                            next = message_buffer.idDemandeurSC;
-                            pthread_mutex_unlock(adrMutex);                                 
+            if ( res > 0 )
+                switch(message_buffer.type){
+                    case TOKEN:
+                        fprintf(fp,"Site n° %d reçoit le TOKEN du site n° %d\n",myID,message_buffer.idEnvoyeur);
+                        pthread_mutex_lock(adrMutex);
+                        token_present = TRUE;
+                        pthread_mutex_unlock(adrMutex);
+                        break;
+                    case REQUEST:
+                        fprintf(fp,"Site n° %d reçoit une REQUEST du site n° %d\n",myID,message_buffer.idEnvoyeur);
+                        pthread_mutex_lock(adrMutex);
+                        if (last == NIL_PROCESS){
+                            if (requete_SC == TRUE) {
+                                pthread_mutex_lock(adrMutex);
+                                next = message_buffer.idDemandeurSC;
+                                pthread_mutex_unlock(adrMutex);                                 
+                            }
+                            else {
+                                fprintf(fp,"Site n° %d envoit le TOKEN à son next le site n° %d\n",myID,message_buffer.idDemandeurSC);
+                                envoiMessage(myID,TOKEN,message_buffer.idDemandeurSC,NIL_PROCESS);
+                            }
                         }
                         else {
-                            fprintf(fp,"Site n° %d envoit le TOKEN à son next le site n° %d\n",myID,message_buffer.idDemandeurSC);
-                            envoiMessage(myID,TOKEN,message_buffer.idDemandeurSC,NIL_PROCESS);
+                            fprintf(fp,"Site n° %d fait passer la REQUEST à son last le site n° %d\n",myID,last);
+                            envoiMessage(myID,REQUEST,last,message_buffer.idDemandeurSC); 
                         }
-                    }
-                    else {
-                        fprintf(fp,"Site n° %d fait passer la REQUEST à son last le site n° %d\n",myID,last);
-                        envoiMessage(myID,REQUEST,last,idDemandeurSC); // 
-                    }
-                    last = message_buffer.idEnvoyeur;
-                    pthread_mutex_unlock(adrMutex);
-                    break;
-                case QUIT:
-                    fprintf(fp,"Site n° %d à recut QUIT du site n° %d",myID,message_buffer.idEnvoyeur);
-                    pthread_mutex_lock(adrMutex);
-                    nbSitesTermine += 1;
-                    pthread_mutex_unlock(adrMutex);
-                    break;
-                default:
-                    printf("Error : message de type non reconnu\n");
-                    exit(EXIT_FAILURE);
-                    break;
-            }
-        }
+                        last = message_buffer.idEnvoyeur;
+                        pthread_mutex_unlock(adrMutex);
+                        break;
+                    case QUIT:
+                        fprintf(fp,"Site n° %d à recut QUIT du site n° %d",myID,message_buffer.idEnvoyeur);
+                        pthread_mutex_lock(adrMutex);
+                        nbSitesTermine += 1;
+                        pthread_mutex_unlock(adrMutex);
+                        break;
+                    default:
+                        printf("Error : message de type non reconnu\n");
+                        exit(EXIT_FAILURE);
+                        break;
+                }
+            
+            else if ( res == 0 )
+                printf("Connection closed\n");
+            
+            else
+                printf("recv failed par le site %d\n", myID);
+                perror("Recv()");
+
+        } while( res > 0 );
     }
     return NULL;
 }
@@ -174,12 +189,15 @@ void * travail(void * params){
     pthread_mutex_t * mutex = arg->mutex;
     
     for (nb_entree_SC = 0;nb_entree_SC< NB_EXEC_SC;nb_entree_SC++){
+        usleep(100000);
         desireRentrerenSC(myID, requete_SC,next, last, token_present, mutex);
+        
+        printf("Site n°%d entre en SC pour la %d ième fois en SC\n",myID,nb_entree_SC+1);
         fprintf(fp, "Site n°%d entre en SC pour la %d ième fois en SC\n",myID,nb_entree_SC+1);
         
         sleep(1); //SC
+        printf("Site n°%d sort de la SC\n",myID);
         fprintf(fp, "Site n°%d sort de la SC\n",myID);        
-
 
         desireSortirSC(myID, requete_SC,next, last, token_present, mutex);
     }
@@ -252,12 +270,15 @@ void run(int racine_last_id,FILE * fp,int start_port){
 
 int desireRentrerenSC(int myID, int * requete_SC, int * next, int * last, int * has_token, pthread_mutex_t *verrou)
 {
+    printf("Site n°%d rentre dans desireRentreSC\n",myID);
 	pthread_mutex_lock(verrou);
 	*requete_SC = TRUE;
 	if(*last!=-1) // si j'ai un père
 	{
-		envoiMessage(myID,REQUEST,*last,myID); // j'envoie la request à mon last et je suis le demandeur donc 4 arguments
-		*last = -1; // je deviens racine de l'anti arborescence
+		if (envoiMessage(myID,REQUEST,*last,myID) == FALSE) {
+            printf("Erreur sur l'envoi de request du site %d au site %d",myID,*last);
+        }; 
+		*last = NIL_PROCESS; // je deviens racine de l'anti arborescence
 	}
     
 	while(1) 
@@ -275,61 +296,60 @@ int desireRentrerenSC(int myID, int * requete_SC, int * next, int * last, int * 
 int desireSortirSC(int myID, int * requete_SC, int * next, int * last, int * has_token, pthread_mutex_t *verrou)
 {
 	pthread_mutex_lock(verrou);
-    *requete_SC = 0; 
+    *requete_SC = FALSE; 
     if (*next !=-1){ // j'ai un next
-        envoiMessage(myID, TOKEN, *next, NIL_PROCESS); // j'envoie le jeton à mon next
+        if (envoiMessage(myID, TOKEN, *next, NIL_PROCESS) == FALSE)
+        {
+            printf("Erreur sur l'envoi de jeton du site %d au site %d",myID,*next);
+        } 
     }
-
 	pthread_mutex_unlock(verrou);
     return 0;
 }
 
 int envoiMessage(int myID, enum messageType type, int destiID, int idDemandeurSC){
 
-    printf("Le Site n°%d créé une socket d'envoi vers le Site n°%d...\n", myID, destiID);
-
     /* Avant de poursuivre dans la fonction, il est important de s'assurer
     que le site émetteur ne soit pas également le site récépteur */
     if (myID == destiID){
         printf("Le site envoyant le message est le même que celui recevant le message.\
                 Arrêt du programme\n.");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     int sockEnvoi = socket(AF_INET,SOCK_STREAM,0);
 
-    if ( socket(sockEnvoi, SOCK_STREAM, 0) < 0) {
+    if (sockEnvoi < 0) {
         printf("Erreur lors de la création de la socket\n");
         perror("Socket()");
-        exit(1);
-        return false;
+        return FALSE;
     }
 
     message message;
     message.idDemandeurSC = idDemandeurSC;
     message.idEnvoyeur = myID;
     message.idReceveur = destiID;
-    
+    message.type = type;
 
     struct sockaddr_in adrReceveur;
     adrReceveur.sin_addr.s_addr = inet_addr("127.0.0.1");
-    adrReceveur.sin_family = PF_INET;
-    adrReceveur.sin_port = htons(start_port+destiID);
+    adrReceveur.sin_family = AF_INET;
+    adrReceveur.sin_port = htons(start_port + destiID);
 
     if (connect(sockEnvoi, (struct sockaddr*)& adrReceveur, sizeof(adrReceveur)) < 0){
-        printf("Erreur lors de la connexion au serveur\n");
+        printf("Erreur lors de la connexion a serveur au niveau du site %d sur le port %d\n",myID,start_port + destiID);
         perror("Connect()");
-        exit(1);
-        return false;
+        return FALSE;
     }
 
     if (send(sockEnvoi, (char* )&message, sizeof(message), MSG_CONFIRM) < 0){
         printf("Erreur lors de l'envoi du message\n");
         perror("Send()");
-        exit(1);
-        return false;
+        return FALSE;
     }
 
+    printf("message envoyé du site:%d {envoyeur: %d, receveur: %d, type: %d, demandeurSc: %d\n",myID,message.idEnvoyeur, message.idReceveur,message.type,message.idDemandeurSC);
+
     close(sockEnvoi);
-    return 0;
+    return TRUE;
 }
