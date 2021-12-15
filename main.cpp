@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     } else if (argc == 5) {
         start_port = atoi(argv[1]);
-        myID = 2;
+        myID = atoi(argv[2]);
         NB_EXEC_SC = atoi(argv[3]);
         NB_NODES = atoi(argv[4]);
     } else {
@@ -97,11 +97,8 @@ void * traitement_message(void * params){
     //printf("Le site n° %d commence à ecouter les connections\n",myID);
 
     int * nbSitesTermine = arg->nbProcessTermines;
-
+    sleep(1);
     pthread_mutex_lock(adrMutex);
-    int c;
-    printf( "Enter a value if all site has be launched\n");
-    c = getchar( );    
     pthread_mutex_unlock(adrMutex);
 
     while(*nbSitesTermine<NB_NODES-1){
@@ -199,6 +196,7 @@ void * travail(void * params){
     {
         if (i != myID) {
             envoiMessage(myID,QUIT,i,NIL_PROCESS);
+            printf("Site n° %d envoit QUIT au site n° %d\n",myID,i);
         }
     }
     pthread_exit(NULL); 
@@ -251,7 +249,9 @@ int desireRentrerenSC(int myID, int * requete_SC, int * next, int * last, int * 
 	{
 		if (envoiMessage(myID,REQUEST,*last,myID) == FALSE) {
             printf("Erreur sur l'envoi de request du site %d au site %d",myID,*last);
+            exit(EXIT_FAILURE);
         }
+        printf("Site n° %d envoit REQUEST au site n° %d\n",myID,*last);
 		*last = NIL_PROCESS; // je deviens racine de l'anti arborescence
 	}
     
@@ -279,7 +279,9 @@ int desireSortirSC(int myID, int * requete_SC, int * next, int * last, int * has
         if (envoiMessage(myID, TOKEN, *next, NIL_PROCESS) == FALSE)
         {
             printf("Erreur sur l'envoi de jeton du site %d au site %d",myID,*next);
+            exit(EXIT_FAILURE);
         }
+        printf("Site n° %d envoit TOKEN au site n° %d\n",myID,*next);
         *has_token = FALSE; 
         *next = NIL_PROCESS;
     }
