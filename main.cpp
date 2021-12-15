@@ -20,14 +20,6 @@ int start_port;
 
 int main(int argc, char *argv[])
 {
-    FILE *fp = fopen("trace_execution_algo.txt", "a+");
-
-    if (!fp)
-    {
-        printf("Error In Opening file");
-        exit(EXIT_FAILURE);
-    }
-
     if (argc < 2)
     {
         start_port = 3000;
@@ -38,9 +30,7 @@ int main(int argc, char *argv[])
     }
 
     int IdInitialJeton = 0;
-    run(IdInitialJeton,fp,start_port);
-
-    fclose(fp);
+    run(IdInitialJeton,start_port);
 
     return 0;
 }
@@ -93,11 +83,10 @@ void * traitement_message(void * params){
     int * requete_SC = arg->requete_SC;
     int * token_present = arg->token_present;
     int * next = arg->next;
-    FILE * fp = arg->file;
     pthread_mutex_t * adrMutex = arg->mutex;
 
     int sockreceveur = creeSocketReceveur(myID,myPort);
-    //printf("Le site n° %d commence à ecouter les connections\n",myID);
+    //printf("Le site n°%d commence à ecouter les connections\n",myID);
 
     int * nbSitesTermine = arg->nbProcessTermines;
     while(*nbSitesTermine<NB_NODES-1){
@@ -117,28 +106,24 @@ void * traitement_message(void * params){
                 switch(message_buffer.type){
                     case TOKEN:
                         pthread_mutex_lock(adrMutex);
-                        printf("Site n° %d reçoit le TOKEN du site n° %d\n",myID,message_buffer.idEnvoyeur);
-                        fprintf(fp,"Site n° %d reçoit le TOKEN du site n° %d\n",myID,message_buffer.idEnvoyeur);
+                        printf("Site n°%d reçoit le TOKEN du site n°%d\n",myID,message_buffer.idEnvoyeur);
                         *token_present = TRUE;
                         pthread_mutex_unlock(adrMutex);
                         break;
                     case REQUEST:
                         pthread_mutex_lock(adrMutex);
-                        printf("Site n° %d reçoit une REQUEST du site n° %d\n",myID,message_buffer.idEnvoyeur);
-                        fprintf(fp,"Site n° %d reçoit une REQUEST du site n° %d\n",myID,message_buffer.idEnvoyeur);
+                        printf("Site n°%d reçoit une REQUEST du site n°%d\n",myID,message_buffer.idEnvoyeur);
                         if (*last == NIL_PROCESS){
                             if (*requete_SC == TRUE) {
                                 *next = message_buffer.idDemandeurSC;
                             }
                             else {
-                                printf("Site n° %d envoit le TOKEN à son next le site n° %d\n",myID,message_buffer.idDemandeurSC);
-                                fprintf(fp,"Site n° %d envoit le TOKEN à son next le site n° %d\n",myID,message_buffer.idDemandeurSC);
+                                printf("Site n°%d envoit le TOKEN à son next le site n°%d\n",myID,message_buffer.idDemandeurSC);
                                 envoiMessage(myID,TOKEN,message_buffer.idDemandeurSC,NIL_PROCESS);
                             }
                         }
                         else {
-                            printf("Site n° %d fait passer la REQUEST à son last le site n° %d\n",myID,*last);
-                            fprintf(fp,"Site n° %d fait passer la REQUEST à son last le site n° %d\n",myID,*last);
+                            printf("Site n°%d fait passer la REQUEST à son last le site n°%d\n",myID,*last);
                             envoiMessage(myID,REQUEST,*last,message_buffer.idDemandeurSC); 
                         }
                         *last = message_buffer.idDemandeurSC;
@@ -146,8 +131,7 @@ void * traitement_message(void * params){
                         break;
                     case QUIT:
                         pthread_mutex_lock(adrMutex);
-                        printf("Site n° %d à recut QUIT du site n° %d\n",myID,message_buffer.idEnvoyeur);
-                        fprintf(fp,"Site n° %d à recut QUIT du site n° %d",myID,message_buffer.idEnvoyeur);
+                        printf("Site n°%d à recut QUIT du site n°%d\n",myID,message_buffer.idEnvoyeur);
                         *nbSitesTermine += 1;
                         pthread_mutex_unlock(adrMutex);
                         break;
@@ -161,11 +145,10 @@ void * traitement_message(void * params){
             
             else
                 printf("recv failed par le site %d\n", myID);
-                //perror("Recv()");
 
         } while( res > 0 );
     }
-    printf("Thread terminé n°%d,  %d",myID,*nbSitesTermine);
+    printf("Thread:::%d termine...\n",myID);
     pthread_exit(NULL); 
 }
 
@@ -177,7 +160,7 @@ void * travail(void * params){
     int myID = arg->myID; 
     int * requete_SC = arg->requete_SC; 
     int * next = arg->next; 
-    int * last = arg->last; FILE * fp = arg->file;
+    int * last = arg->last;
     int * token_present = arg->token_present; 
     pthread_mutex_t * mutex = arg->mutex;
     
@@ -185,18 +168,15 @@ void * travail(void * params){
         desireRentrerenSC(myID, requete_SC,next, last, token_present, mutex);
         
         printf("Site n°%d entre en SC pour la %d ième fois en SC\n",myID,nb_entree_SC+1);
-        fprintf(fp, "Site n°%d entre en SC pour la %d ième fois en SC\n",myID,nb_entree_SC+1);
         
         sleep(0.5); //SC
         printf("Site n°%d sort de la SC\n",myID);
-        fprintf(fp, "Site n°%d sort de la SC\n",myID);        
         desireSortirSC(myID, requete_SC,next, last, token_present, mutex);
     }
 
     for (int i = 0; i <NB_NODES;i++) 
     {
         if (i != myID) {
-            fprintf(fp,"p%d sends terminate message to %d\n",myID,i);
             envoiMessage(myID,QUIT,i,NIL_PROCESS);
         }
     }
@@ -204,8 +184,7 @@ void * travail(void * params){
 }
 
 
-void run(int racine_last_id,FILE * fp,int start_port){
-    fprintf(fp,"Strart runnning Simulations of Naimi Trehel's Algorithm with %d nodes\n",NB_NODES);
+void run(int racine_last_id,int start_port){
 
     int last[NB_NODES];
     int next[NB_NODES]; 
@@ -236,7 +215,7 @@ void run(int racine_last_id,FILE * fp,int start_port){
 
     for (int i = 0;i<NB_NODES;i++){
         argReceveur[i] = {.myID = i, .myPort = start_port + i ,.last = last+i, .next = next+i , .requete_SC = requete_SC+i, 
-        .token_present = token_present+i, .nbProcessTermines = nbProcessTermines+i, .file = fp, .mutex = thread_mutex+i};
+        .token_present = token_present+i, .nbProcessTermines = nbProcessTermines+i, .mutex = thread_mutex+i};
     }
 
     for (int i = 0;i<NB_NODES;i++){
@@ -247,7 +226,7 @@ void run(int racine_last_id,FILE * fp,int start_port){
 
     for (int i = 0;i<NB_NODES;i++){
         argTravailleur[i] = {.myID = i, .myPort = start_port + i, .last = last+i, .next = next+i , .requete_SC = requete_SC+i, 
-        .token_present = token_present+i, .nbProcessTermines = nbProcessTermines+i, .file = fp, .mutex = thread_mutex+i};
+        .token_present = token_present+i, .nbProcessTermines = nbProcessTermines+i, .mutex = thread_mutex+i};
     }
 
     for (int i = 0;i<NB_NODES;i++){
