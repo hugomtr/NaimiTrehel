@@ -4,7 +4,7 @@
 #define NIL -1
 #define TRUE 1
 #define FALSE 0
-#define NB_EXEC_SC 2
+#define NB_EXEC_SC 4
 
 enum messageType {
     TOKEN,
