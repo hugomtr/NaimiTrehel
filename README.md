@@ -18,7 +18,7 @@ We used some concepts seen in class as thread programming with POSIX threads[^2]
 Our IDE was Visual Studio Code.
 
 ## How to test our project
-1. Compile the main file using gcc or g++ ``` gcc main.cpp calculCC.o -o main -lpthread ```
+1. Compile the main file using gcc or g++ ``` gcc main.cpp calculCC.o -o exec -lpthread ```
 2. Before starting running the project, we want you to know that the xterm version of the project can be used by 2 differents ways: 
 With 2 parameters : ```./exec id_site number_executions_site``` or with 4 parameters : ```./exec starting_port_nb id_site nb_exec_CS nb_sites```
 3. Open as many console as sites you decided (sites decided by modifying the script or through the parameters)
