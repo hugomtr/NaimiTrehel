@@ -175,16 +175,14 @@ void * travail(void * params){
     int * token_present = arg->token_present; 
     pthread_mutex_t * mutex = arg->mutex;
 
-    pthread_mutex_lock(mutex);
     int c;
     printf( "Enter a value if all site has be launched\n");
-    c = getchar( );    
-    pthread_mutex_unlock(mutex);
-
+    c = getchar();         
+   
     for (nb_entree_SC = 0;nb_entree_SC< NB_EXEC_SC;nb_entree_SC++){
         desireRentrerenSC(myID, requete_SC,next, last, token_present, mutex);
         
-        printf("Site n°%d entre en SC pour la %d ième fois en SC\n",myID,nb_entree_SC+1);
+        printf("Site n°%d entre en SC pour la %d ième fois\n",myID,nb_entree_SC+1);
         calcul(1); //SC
         printf("Site n°%d sort de la SC\n",myID);
         desireSortirSC(myID, requete_SC,next, last, token_present, mutex);
