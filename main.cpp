@@ -5,6 +5,10 @@ Authors:
 @Wangyuyang
 */
 
+/* Inspired in some parts by Harsh Agarwal 
+   harshaga97@gmail.com */
+
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <netdb.h>
