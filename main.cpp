@@ -14,6 +14,7 @@ Authors:
 #include <stdlib.h>
 #include <pthread.h>
 #include "main.h"
+#include "calcul.h"
 
 // VA Globales
 int start_port;
@@ -97,9 +98,6 @@ void * traitement_message(void * params){
     //printf("Le site n° %d commence à ecouter les connections\n",myID);
 
     int * nbSitesTermine = arg->nbProcessTermines;
-    sleep(1);
-    pthread_mutex_lock(adrMutex);
-    pthread_mutex_unlock(adrMutex);
 
     while(*nbSitesTermine<NB_NODES-1){
         int sockConn = accept(sockreceveur, (struct sockaddr *)&client, &len);
@@ -187,7 +185,7 @@ void * travail(void * params){
         desireRentrerenSC(myID, requete_SC,next, last, token_present, mutex);
         
         printf("Site n°%d entre en SC pour la %d ième fois en SC\n",myID,nb_entree_SC+1);
-        sleep(0.5); //SC
+        calcul(1); //SC
         printf("Site n°%d sort de la SC\n",myID);
         desireSortirSC(myID, requete_SC,next, last, token_present, mutex);
     }
