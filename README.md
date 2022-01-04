@@ -18,10 +18,16 @@ We used some concepts seen in class as thread programming with POSIX threads[^2]
 Our IDE was Visual Studio Code.
 
 ## How to test our project
-
+1. Compile the main file using gcc or g++ ``` gcc main.cpp calculCC.o -o exec -lpthread ```
+2. Before starting running the project, we want you to know that the xterm version of the project can be used by 2 differents ways: 
+With 2 parameters : ```./exec id_site number_executions_site``` or with 4 parameters : ```./exec starting_port_nb id_site nb_exec_CS nb_sites```
+3. Open as many console as sites you decided (sites decided by modifying the script or through the parameters)
+4. Site 0 is considered as the one having the token. Thus, it is waiting for requests. Repeat the step **2** changing the correct parameters.
+5. When you see ``` Enter a value if all site has be launched ```, enter one value on at least one of the sites that is different of the site 0.
+6. Once this step finished, enter the value on the site 0, this value can be whatever you want, a space or something else, it won't have any impact on the algorithm
 
 ## Conclusion
-
+Doing this project taught us much more about how distributed systems work and what they really are, in practise. The Naïmi-Tréhel algorithm is a great one to start seeing those things. We thank our teachers who introduced us the concepts of network, parallel computing and distributed algorithms, and hope we made good use of them through this project.
 
 ## Collaborators
 * Maitre Hugo
